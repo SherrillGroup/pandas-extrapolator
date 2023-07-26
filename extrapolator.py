@@ -74,7 +74,8 @@ def extrapolate_energies_df(f1, f2, df_out):
     )
     df["SAPT0 ELST ENERGY"] = df["SAPT ELST10,R ENERGY (TZ)"]
     df["SAPT0 IND ENERGY"] = (
-        df["SAPT IND20,R ENERGY (TZ)"]
+        # NOTE: SAPT EXCHSCAL is 1 due to alpha=0.0, 2023-07-26
+        df["SAPT IND20,R ENERGY (TZ)"] * df['SAPT EXCHSCAL (TZ)']
         + df["SAPT HF(2) ENERGY (TZ)"]
         + df["SAPT EXCH-IND20,R ENERGY (TZ)"]
     )
@@ -94,6 +95,7 @@ def extrapolate_energies_df(f1, f2, df_out):
         elst = r["SAPT0 ELST ENERGY"]
         elst_tz = r["SAPT0 ELST ENERGY (TZ)"]
         tot = r["SAPT0 TOTAL ENERGY"]
+        sapt_alpha = r['SAPT ALPHA (TZ)']
         assert abs(elst - elst_tz) < 1e-12
         assert abs(ind - ind_tz) < 1e-12
         assert abs(exch - exch_tz) < 1e-12
@@ -141,6 +143,7 @@ def generate_output_pkls():
                 if not os.path.exists(dir_path):
                     os.mkdir(dir_path)
                 extrapolate_energies_df(i, j, df_path_out)
+                return
 
 
 def main():
