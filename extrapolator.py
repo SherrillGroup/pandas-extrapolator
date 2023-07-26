@@ -60,16 +60,6 @@ def extrapolate_energies_df(f1, f2, df_out):
         "SAPT DISP20 ENERGY",
         "SAPT EXCH-DISP20 ENERGY",
     ]
-    tz_columns = [
-        "SAPT ELST10,R ENERGY",
-        "SAPT EXCH10 ENERGY",
-        "SAPT EXCH10(S^2) ENERGY",
-        "SAPT IND20,R ENERGY",
-        "SAPT EXCH-IND20,R ENERGY",
-        "SAPT HF(2) ALPHA=0.0 ENERGY",
-        "SAPT HF(2) ENERGY",
-        "SAPT HF(3) ENERGY",
-    ]
 
     df_d.columns = df_d.columns.values + " (DZ)"
     df_t.columns = df_t.columns.values + " (TZ)"
@@ -108,26 +98,31 @@ def extrapolate_energies_df(f1, f2, df_out):
         assert abs(ind - ind_tz) < 1e-12
         assert abs(exch - exch_tz) < 1e-12
 
-    # subset = ["SAPT EXCH-DISP20 ENERGY (DZ)", "SAPT EXCH-DISP20 ENERGY (TZ)"]
-    # subset.extend(extrap_columns)
-    subset = []
-    df_subset = df[extrap_columns]
-    df.to_pickle()
-    # for n, r in df_subset.iterrows():
-    #     print(f"{r['SAPT EXCH-DISP20 ENERGY (DZ)']:.4e} {r['SAPT EXCH-DISP20 ENERGY (TZ)']:.4e} {r['SAPT EXCH-DISP20 ENERGY']:.4e}")
-    # pd.set_option("display.max_rows", None)
-    # pd.set_option("display.max_columns", None)
-    # print(df_subset)
+    tz_columns = [
+        "SAPT ELST10,R ENERGY",
+        "SAPT EXCH10 ENERGY",
+        "SAPT EXCH10(S^2) ENERGY",
+        "SAPT IND20,R ENERGY",
+        "SAPT EXCH-IND20,R ENERGY",
+        "SAPT HF(2) ALPHA=0.0 ENERGY",
+        "SAPT HF(2) ENERGY",
+        "SAPT HF(3) ENERGY",
+    ]
+    for i in tz_columns:
+        df[i] = df[i + " (TZ)"]
+
+    subset = [i for i in df.columns.values if "(TZ)" not in i and "(DZ)" not in i]
+    print(subset)
+    df_subset = df[subset]
+    df_subset.to_pickle(df_out)
 
     # I need to store that as a series inside a dataframe df_dt ... if I
     # initialize it as empty first can I compute it directly to the desired
     # location?  Or else I need to copy the computed series into the dataframe
     return
 
-
-def main():
+def generate_output_pkls():
     # Ok mess around for now and test
-
     fs_adz = glob("sapt_ref_data/adz/*.pkl")
     fs_atz = glob("sapt_ref_data/atz/*.pkl")
     print(fs_adz)
@@ -146,6 +141,13 @@ def main():
                 if not os.path.exists(dir_path):
                     os.mkdir(dir_path)
                 extrapolate_energies_df(i, j, df_path_out)
+
+
+def main():
+    generate_output_pkls()
+    # test output
+    df = pd.read_pickle("sapt_ref_data/adtz/hbc6-plat-adtz-all.pkl")
+    print(df.columns)
     return
 
 
