@@ -1,6 +1,7 @@
 import pandas as pd
 from glob import glob
 from pprint import pprint as pp
+import os
 
 
 def extrapolate_energies(C1, C2, E1, E2):
@@ -42,11 +43,7 @@ def extrapolate_energies(C1, C2, E1, E2):
     return E_CBS
 
 
-def main():
-    # Ok mess around for now and test
-
-    # files = glob("sapt_ref_data/adz/*.pkl")
-
+def extrapolate_energies_df(f1, f2, df_out):
     # read a double-zeta file
     df_d = pd.read_pickle("sapt_ref_data/adz/hbc6-plat-adz-all.pkl")
     # read a triple-zeta file
@@ -80,39 +77,75 @@ def main():
     for i in extrap_columns:
         df[i] = df.apply(
             lambda r: extrapolate_energies(2, 3, r[i + " (DZ)"], r[i + " (TZ)"]), axis=1
+        )
+
+    df["SAPT0 DISP ENERGY"] = (
+        df["SAPT DISP20 ENERGY (TZ)"] + df["SAPT EXCH-DISP20 ENERGY (TZ)"]
     )
-
-    df['SAPT0 DISP ENERGY'] = df["SAPT DISP20 ENERGY (TZ)"] + df["SAPT EXCH-DISP20 ENERGY (TZ)"]
-    df['SAPT0 ELST ENERGY'] = df['SAPT ELST10,R ENERGY (TZ)']
-    df['SAPT0 IND ENERGY'] = df['SAPT IND20,R ENERGY (TZ)'] + df["SAPT HF(2) ENERGY (TZ)"] + df['SAPT EXCH-IND20,R ENERGY (TZ)']
-    df['SAPT0 EXCH ENERGY'] = df["SAPT EXCH10 ENERGY (TZ)"]
-    df['SAPT0 TOTAL ENERGY'] = df['SAPT0 DISP ENERGY'] + df['SAPT0 ELST ENERGY'] + df['SAPT0 IND ENERGY'] + df['SAPT0 EXCH ENERGY']
+    df["SAPT0 ELST ENERGY"] = df["SAPT ELST10,R ENERGY (TZ)"]
+    df["SAPT0 IND ENERGY"] = (
+        df["SAPT IND20,R ENERGY (TZ)"]
+        + df["SAPT HF(2) ENERGY (TZ)"]
+        + df["SAPT EXCH-IND20,R ENERGY (TZ)"]
+    )
+    df["SAPT0 EXCH ENERGY"] = df["SAPT EXCH10 ENERGY (TZ)"]
+    df["SAPT0 TOTAL ENERGY"] = (
+        df["SAPT0 DISP ENERGY"]
+        + df["SAPT0 ELST ENERGY"]
+        + df["SAPT0 IND ENERGY"]
+        + df["SAPT0 EXCH ENERGY"]
+    )
     for n, r in df.iterrows():
-        disp = r['SAPT0 DISP ENERGY']
-        exch = r['SAPT0 EXCH ENERGY']
-        exch_tz = r['SAPT0 EXCH ENERGY (TZ)']
-        ind = r['SAPT0 IND ENERGY']
-        ind_tz = r['SAPT0 IND ENERGY (TZ)']
-        elst = r['SAPT0 ELST ENERGY']
-        elst_tz = r['SAPT0 ELST ENERGY (TZ)']
-        tot = r['SAPT0 TOTAL ENERGY']
+        disp = r["SAPT0 DISP ENERGY"]
+        exch = r["SAPT0 EXCH ENERGY"]
+        exch_tz = r["SAPT0 EXCH ENERGY (TZ)"]
+        ind = r["SAPT0 IND ENERGY"]
+        ind_tz = r["SAPT0 IND ENERGY (TZ)"]
+        elst = r["SAPT0 ELST ENERGY"]
+        elst_tz = r["SAPT0 ELST ENERGY (TZ)"]
+        tot = r["SAPT0 TOTAL ENERGY"]
         assert abs(elst - elst_tz) < 1e-12
-        assert abs(ind - ind_tz  ) < 1e-12
+        assert abs(ind - ind_tz) < 1e-12
         assert abs(exch - exch_tz) < 1e-12
-
 
     # subset = ["SAPT EXCH-DISP20 ENERGY (DZ)", "SAPT EXCH-DISP20 ENERGY (TZ)"]
     # subset.extend(extrap_columns)
+    subset = []
     df_subset = df[extrap_columns]
+    df.to_pickle()
     # for n, r in df_subset.iterrows():
     #     print(f"{r['SAPT EXCH-DISP20 ENERGY (DZ)']:.4e} {r['SAPT EXCH-DISP20 ENERGY (TZ)']:.4e} {r['SAPT EXCH-DISP20 ENERGY']:.4e}")
-    pd.set_option("display.max_rows", None)
+    # pd.set_option("display.max_rows", None)
     # pd.set_option("display.max_columns", None)
     # print(df_subset)
 
     # I need to store that as a series inside a dataframe df_dt ... if I
     # initialize it as empty first can I compute it directly to the desired
     # location?  Or else I need to copy the computed series into the dataframe
+    return
+
+
+def main():
+    # Ok mess around for now and test
+
+    fs_adz = glob("sapt_ref_data/adz/*.pkl")
+    fs_atz = glob("sapt_ref_data/atz/*.pkl")
+    print(fs_adz)
+    print(fs_atz)
+    for i in fs_atz:
+        db_atz = i.split("/")[-1].split("-")[0]
+        for j in fs_adz:
+            db_adz = j.split("/")[-1].split("-")[0]
+            if db_atz == db_adz:
+                print(db_atz, db_adz)
+                print(i, j)
+                df_path_out = i.replace("atz", "adtz")
+                print(df_path_out)
+                dir_path = "/".join(df_path_out.split("/")[:-1])
+                print(dir_path)
+                if not os.path.exists(dir_path):
+                    os.mkdir(dir_path)
+                extrapolate_energies_df(i, j, df_path_out)
     return
 
 
