@@ -1,5 +1,6 @@
 import pandas as pd
 from glob import glob
+from pprint import pprint as pp
 
 
 def extrapolate_energies(C1, C2, E1, E2):
@@ -42,7 +43,6 @@ def extrapolate_energies(C1, C2, E1, E2):
 
 
 def main():
-
     # Ok mess around for now and test
 
     # files = glob("sapt_ref_data/adz/*.pkl")
@@ -51,6 +51,7 @@ def main():
     df_d = pd.read_pickle("sapt_ref_data/adz/hbc6-plat-adz-all.pkl")
     # read a triple-zeta file
     df_t = pd.read_pickle("sapt_ref_data/atz/hbc6-plat-atz-all.pkl")
+    cols = df_d.columns.values
 
     # now extrapolate the SAPT0 dispersion energy
     df_tmp = (3**3) / (3**3 - 2**3) * df_t["SAPT0 DISP ENERGY"] - (
@@ -59,9 +60,19 @@ def main():
     # Need to grab all columns that are 'correlated' terms
 
     extrap_columns = [
-        "SAPT0 DISP ENERGY",
+        "SAPT DISP20 ENERGY",
+        "SAPT EXCH-DISP20 ENERGY",
     ]
-
+    tz_columns = [
+        "SAPT ELST10,R ENERGY",
+        "SAPT EXCH10 ENERGY",
+        "SAPT EXCH10(S^2) ENERGY",
+        "SAPT IND20,R ENERGY",
+        "SAPT EXCH-IND20,R ENERGY",
+        "SAPT HF(2) ALPHA=0.0 ENERGY",
+        "SAPT HF(2) ENERGY",
+        "SAPT HF(3) ENERGY",
+    ]
 
     df_d.columns = df_d.columns.values + " (DZ)"
     df_t.columns = df_t.columns.values + " (TZ)"
@@ -69,13 +80,35 @@ def main():
     for i in extrap_columns:
         df[i] = df.apply(
             lambda r: extrapolate_energies(2, 3, r[i + " (DZ)"], r[i + " (TZ)"]), axis=1
-        )
+    )
 
+    df['SAPT0 DISP ENERGY'] = df["SAPT DISP20 ENERGY (TZ)"] + df["SAPT EXCH-DISP20 ENERGY (TZ)"]
+    df['SAPT0 ELST ENERGY'] = df['SAPT ELST10,R ENERGY (TZ)']
+    df['SAPT0 IND ENERGY'] = df['SAPT IND20,R ENERGY (TZ)'] + df["SAPT HF(2) ENERGY (TZ)"] + df['SAPT EXCH-IND20,R ENERGY (TZ)']
+    df['SAPT0 EXCH ENERGY'] = df["SAPT EXCH10 ENERGY (TZ)"]
+    df['SAPT0 TOTAL ENERGY'] = df['SAPT0 DISP ENERGY'] + df['SAPT0 ELST ENERGY'] + df['SAPT0 IND ENERGY'] + df['SAPT0 EXCH ENERGY']
+    for n, r in df.iterrows():
+        disp = r['SAPT0 DISP ENERGY']
+        exch = r['SAPT0 EXCH ENERGY']
+        exch_tz = r['SAPT0 EXCH ENERGY (TZ)']
+        ind = r['SAPT0 IND ENERGY']
+        ind_tz = r['SAPT0 IND ENERGY (TZ)']
+        elst = r['SAPT0 ELST ENERGY']
+        elst_tz = r['SAPT0 ELST ENERGY (TZ)']
+        tot = r['SAPT0 TOTAL ENERGY']
+        assert abs(elst - elst_tz) < 1e-12
+        assert abs(ind - ind_tz  ) < 1e-12
+        assert abs(exch - exch_tz) < 1e-12
+
+
+    # subset = ["SAPT EXCH-DISP20 ENERGY (DZ)", "SAPT EXCH-DISP20 ENERGY (TZ)"]
+    # subset.extend(extrap_columns)
     df_subset = df[extrap_columns]
-    print(df_subset)
-    for i, j in zip(df_tmp.to_list(), df_subset[extrap_columns[0]].to_list()):
-        print(i, j)
-
+    # for n, r in df_subset.iterrows():
+    #     print(f"{r['SAPT EXCH-DISP20 ENERGY (DZ)']:.4e} {r['SAPT EXCH-DISP20 ENERGY (TZ)']:.4e} {r['SAPT EXCH-DISP20 ENERGY']:.4e}")
+    pd.set_option("display.max_rows", None)
+    # pd.set_option("display.max_columns", None)
+    # print(df_subset)
 
     # I need to store that as a series inside a dataframe df_dt ... if I
     # initialize it as empty first can I compute it directly to the desired
@@ -85,5 +118,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
