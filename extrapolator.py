@@ -2,6 +2,7 @@ import pandas as pd
 from glob import glob
 from pprint import pprint as pp
 import os
+import src
 
 
 def extrapolate_energies(C1, C2, E1, E2):
@@ -44,9 +45,8 @@ def extrapolate_energies(C1, C2, E1, E2):
 
 
 def extrapolate_energies_df(f1, f2, df_out):
-
     # some notes about exchange-scaling:
-    # many of the fundamental SAPT terms are computed using the 
+    # many of the fundamental SAPT terms are computed using the
     # single-exchange (S^2) approximation.  In Ed Hohenstein's original
     # SAPT code, we scaled all of these by the ratio
     # E_{exch}^{(10)} / E_{exch}^{(10)(S^2)} = "SAPT EXCHSCAL1"
@@ -54,11 +54,11 @@ def extrapolate_energies_df(f1, f2, df_out):
     # I do not recall any theory paper that really demonstrated that
     # this scaling is necessarily very effective (in SAPT(DFT) Hesselmann
     # found that scaling E_{exch-disp}^{(20)} by a simple constant
-    # was more effective than using the above ratio. 
-    # 
+    # was more effective than using the above ratio.
+    #
     # Ultimately, we decided at some point to reverse Ed's exchange
     # scaling and not scale these terms, especially for higher-order
-    # SAPT.  I don't recall if other codes commonly scale 
+    # SAPT.  I don't recall if other codes commonly scale
     # E_{exch-disp}^{(20)} and E_{exch-ind}^{(20)} or not, but even
     # if there is some literature precedent for that, I got concerned
     # about scaling the higher-order (S^2) terms without more evidence
@@ -72,7 +72,7 @@ def extrapolate_energies_df(f1, f2, df_out):
     # If no exchange scaling is done, then that is effectively the same
     # as using SAPT ALPHA = 0, yielding SAPT EXCHSCAL = 1.0.
     #
-    # A special value of SAPT ALPHA = 3 is used to obtain the 
+    # A special value of SAPT ALPHA = 3 is used to obtain the
     # so-called scaled SAPT0, or sSAPT0, which we found to work better
     # for many short-range contacts (e.g., 10.1039/c8cp02029a).
     # (On the other hand, we found that some *very* close contacts
@@ -93,7 +93,7 @@ def extrapolate_energies_df(f1, f2, df_out):
     ) * df_d["SAPT0 DISP ENERGY"]
     # Need to grab all columns that are 'correlated' terms
 
-    # list all possible columns to extrapolate.  if a lower level of 
+    # list all possible columns to extrapolate.  if a lower level of
     # SAPT was computed, some of these columns might not be available
     # do not extrapolate quantities that are derived from more fundamental
     # quantities ... just re-compute those using our SAPT variable
@@ -119,8 +119,19 @@ def extrapolate_energies_df(f1, f2, df_out):
         "SAPT IND-DISP30 ENERGY",
         "SAPT IND22 ENERGY",
         "SAPT IND30,R ENERGY",
-        "SAPT MP2 CORRELATION ENERGY", # supermolecular MP2 E_corr for dMP2
+        "SAPT MP2 CORRELATION ENERGY",  # supermolecular MP2 E_corr for dMP2
     ]
+    # TODO: check if exist when copying...
+    copy_from_larger_basis_columns = [
+        "SAPT ELST10,R ENERGY",
+        "SAPT EXCH10 ENERGY",
+        "SAPT EXCH10(S^2) ENERGY",
+        "SAPT IND20,R ENERGY",
+        "SAPT EXCH-IND20,R ENERGY",
+        "SAPT IND20,U ENERGY",
+        "SAPT EXCH-IND20,U ENERGY",
+    ]
+    # TODO: take above lists to make new df for Lori functions
 
     df_d.columns = df_d.columns.values + " (DZ)"
     df_t.columns = df_t.columns.values + " (TZ)"
@@ -129,7 +140,7 @@ def extrapolate_energies_df(f1, f2, df_out):
         df[i] = df.apply(
             lambda r: extrapolate_energies(2, 3, r[i + " (DZ)"], r[i + " (TZ)"]), axis=1
         )
-
+    """
     df["SAPT0 DISP ENERGY"] = (
         df["SAPT DISP20 ENERGY (TZ)"] + df["SAPT EXCH-DISP20 ENERGY (TZ)"]
     )
@@ -147,6 +158,9 @@ def extrapolate_energies_df(f1, f2, df_out):
         + df["SAPT0 IND ENERGY"]
         + df["SAPT0 EXCH ENERGY"]
     )
+    # print(df.columns.values)
+    df = src.extrap_df.compute_extrapolations(df)
+    """
     for n, r in df.iterrows():
         disp = r["SAPT0 DISP ENERGY"]
         exch = r["SAPT0 EXCH ENERGY"]
@@ -156,22 +170,18 @@ def extrapolate_energies_df(f1, f2, df_out):
         elst = r["SAPT0 ELST ENERGY"]
         elst_tz = r["SAPT0 ELST ENERGY (TZ)"]
         tot = r["SAPT0 TOTAL ENERGY"]
-        sapt_alpha = r['SAPT ALPHA (TZ)']
+        sapt_alpha = r["SAPT ALPHA (TZ)"]
         assert abs(elst - elst_tz) < 1e-12
         assert abs(ind - ind_tz) < 1e-12
         assert abs(exch - exch_tz) < 1e-12
-
     # copy HF-level data (not depending on electron correlation) from the
     # larger basis, just like we would do in focal-point methods
-    copy_from_larger_basis_columns = [
-        "SAPT ELST10,R ENERGY",
-        "SAPT EXCH10 ENERGY",
-        "SAPT EXCH10(S^2) ENERGY",
-        "SAPT IND20,R ENERGY",
-        "SAPT EXCH-IND20,R ENERGY",
-    ]
+    # TODO: Be able to use all of Lori's lambda functions
+    # asser that derived values match original values (TZ)
+    # generalize code to handle DT or TQ
     for i in copy_from_larger_basis_columns:
-        df[i] = df[i + " (TZ)"]
+        if i in df_d.columns.values:
+            df[i] = df[i + " (TZ)"]
 
     subset = [i for i in df.columns.values if "(TZ)" not in i and "(DZ)" not in i]
     print(subset)
@@ -183,16 +193,16 @@ def extrapolate_energies_df(f1, f2, df_out):
     # location?  Or else I need to copy the computed series into the dataframe
     return
 
+
 def generate_output_pkls():
     # Ok mess around for now and test
     fs_adz = glob("sapt_ref_data/adz/*.pkl")
     fs_atz = glob("sapt_ref_data/atz/*.pkl")
-    print(fs_adz)
-    print(fs_atz)
     for i in fs_atz:
         db_atz = i.split("/")[-1].split("-")[0]
         for j in fs_adz:
             db_adz = j.split("/")[-1].split("-")[0]
+            # TODO: Add in QZ for TQ extrapolation
             if db_atz == db_adz:
                 print(db_atz, db_adz)
                 print(i, j)
