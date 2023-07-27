@@ -44,6 +44,43 @@ def extrapolate_energies(C1, C2, E1, E2):
 
 
 def extrapolate_energies_df(f1, f2, df_out):
+
+    # some notes about exchange-scaling:
+    # many of the fundamental SAPT terms are computed using the 
+    # single-exchange (S^2) approximation.  In Ed Hohenstein's original
+    # SAPT code, we scaled all of these by the ratio
+    # E_{exch}^{(10)} / E_{exch}^{(10)(S^2)} = "SAPT EXCHSCAL1"
+    # to approximately compensate for the S^2 approximation.  However,
+    # I do not recall any theory paper that really demonstrated that
+    # this scaling is necessarily very effective (in SAPT(DFT) Hesselmann
+    # found that scaling E_{exch-disp}^{(20)} by a simple constant
+    # was more effective than using the above ratio. 
+    # 
+    # Ultimately, we decided at some point to reverse Ed's exchange
+    # scaling and not scale these terms, especially for higher-order
+    # SAPT.  I don't recall if other codes commonly scale 
+    # E_{exch-disp}^{(20)} and E_{exch-ind}^{(20)} or not, but even
+    # if there is some literature precedent for that, I got concerned
+    # about scaling the higher-order (S^2) terms without more evidence
+    # that it was a good idea.  We universally stopped scaling any of
+    # these terms (even for SAPT0) by default, although the scaling
+    # can be turned back on, which would then default to using
+    # the above ratio, SAPT EXCHSCAL1, or alternatively this factor
+    # can also be used raised to higher powers, determined by
+    # "SAPT ALPHA", providing the final scaling factor "SAPT EXCHSCAL".
+    #
+    # If no exchange scaling is done, then that is effectively the same
+    # as using SAPT ALPHA = 0, yielding SAPT EXCHSCAL = 1.0.
+    #
+    # A special value of SAPT ALPHA = 3 is used to obtain the 
+    # so-called scaled SAPT0, or sSAPT0, which we found to work better
+    # for many short-range contacts (e.g., 10.1039/c8cp02029a).
+    # (On the other hand, we found that some *very* close contacts
+    # get over-corrected by sSAPT0, e.g., the Splinter dataset paper 2023).
+    # The exchange scaling ratio to the third power is stored in
+    # SAPT EXCHSCAL3, which is used the formulas to compute sSAPT energies.
+    # -CDS 7/27/23
+
     # read a double-zeta file
     df_d = pd.read_pickle("sapt_ref_data/adz/hbc6-plat-adz-all.pkl")
     # read a triple-zeta file
@@ -56,9 +93,33 @@ def extrapolate_energies_df(f1, f2, df_out):
     ) * df_d["SAPT0 DISP ENERGY"]
     # Need to grab all columns that are 'correlated' terms
 
+    # list all possible columns to extrapolate.  if a lower level of 
+    # SAPT was computed, some of these columns might not be available
+    # do not extrapolate quantities that are derived from more fundamental
+    # quantities ... just re-compute those using our SAPT variable
+    # computation code adapted from Psi4
     extrap_columns = [
         "SAPT DISP20 ENERGY",
-        "SAPT EXCH-DISP20 ENERGY",
+        "SAPT DISP21 ENERGY",
+        "SAPT DISP22(S)(CCD) ENERGY",
+        "SAPT DISP22(SDQ) ENERGY",
+        "SAPT DISP22(T) ENERGY",
+        "SAPT DISP22(T)(CCD) ENERGY",
+        "SAPT DISP30 ENERGY",
+        "SAPT ELST12,R ENERGY",
+        "SAPT ELST13,R ENERGY",
+        "SAPT EST.DISP22(T) ENERGY",
+        "SAPT EST.DISP22(T)(CCD) ENERGY",
+        "SAPT EXCH-DISP30 ENERGY",
+        "SAPT EXCH-IND-DISP30 ENERGY",
+        "SAPT EXCH-IND22 ENERGY",
+        "SAPT EXCH-IND30,R ENERGY",
+        "SAPT EXCH11(S^2) ENERGY",
+        "SAPT EXCH12(S^2) ENERGY",
+        "SAPT IND-DISP30 ENERGY",
+        "SAPT IND22 ENERGY",
+        "SAPT IND30,R ENERGY",
+        "SAPT MP2 CORRELATION ENERGY", # supermolecular MP2 E_corr for dMP2
     ]
 
     df_d.columns = df_d.columns.values + " (DZ)"
@@ -100,17 +161,16 @@ def extrapolate_energies_df(f1, f2, df_out):
         assert abs(ind - ind_tz) < 1e-12
         assert abs(exch - exch_tz) < 1e-12
 
-    tz_columns = [
+    # copy HF-level data (not depending on electron correlation) from the
+    # larger basis, just like we would do in focal-point methods
+    copy_from_larger_basis_columns = [
         "SAPT ELST10,R ENERGY",
         "SAPT EXCH10 ENERGY",
         "SAPT EXCH10(S^2) ENERGY",
         "SAPT IND20,R ENERGY",
         "SAPT EXCH-IND20,R ENERGY",
-        "SAPT HF(2) ALPHA=0.0 ENERGY",
-        "SAPT HF(2) ENERGY",
-        "SAPT HF(3) ENERGY",
     ]
-    for i in tz_columns:
+    for i in copy_from_larger_basis_columns:
         df[i] = df[i + " (TZ)"]
 
     subset = [i for i in df.columns.values if "(TZ)" not in i and "(DZ)" not in i]
