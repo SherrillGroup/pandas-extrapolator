@@ -136,7 +136,6 @@ def extrapolate_energies_df(
     # do not extrapolate quantities that are derived from more fundamental
     # quantities ... just re-compute those using our SAPT variable
     # computation code adapted from Psi4
-    print(df_c1.columns.values)
     extrap_columns = [
         "SAPT DISP20 ENERGY",
         "SAPT DISP21 ENERGY",
@@ -200,9 +199,6 @@ def extrapolate_energies_df(
     df = df[subset].copy()
     # now compute SAPT terms from the extrapolated energies
     df = src.compute_sapt_terms.compute_sapt_terms(df)
-    print(f"\nOutput columns {len(df)}:")
-    for i in df.columns.values:
-        print(i)
     # now select the new data for export
     df.to_pickle(df_out)
     return
