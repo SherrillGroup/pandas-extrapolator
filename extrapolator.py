@@ -169,6 +169,7 @@ def extrapolate_energies_df(
         "SAPT EXCH-IND20,R ENERGY",
         "SAPT IND20,U ENERGY",
         "SAPT EXCH-IND20,U ENERGY",
+        "SAPT HF TOTAL ENERGY",
     ]
 
     df_c1.columns = df_c1.columns.values + f" ({c1_label})"
@@ -197,6 +198,7 @@ def extrapolate_energies_df(
     df = df[subset].copy()
     # now compute SAPT terms from the extrapolated energies
     df = src.compute_sapt_terms.compute_sapt_terms(df)
+    print(len(df))
     # now select the new data for export
     df.to_pickle(df_out)
     return

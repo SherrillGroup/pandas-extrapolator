@@ -15,7 +15,6 @@ def compute_sapt_terms(df, sapt_alpha=None):
 
     x = ['SAPT EXCHSCAL1', "SAPT ALPHA"]
     if set([i for i in x if type(i) == str]).issubset(df.columns):
-        print("computing exchscal")
         df['SAPT EXCHSCAL'] = df.apply(lambda r: r[x[0]] ** r[x[1]], axis=1)
 
     x = ['SAPT HF TOTAL ENERGY', 'SAPT ELST10,R ENERGY', 'SAPT EXCH10 ENERGY', 'SAPT IND20,R ENERGY', 'SAPT EXCH-IND20,R ENERGY']
