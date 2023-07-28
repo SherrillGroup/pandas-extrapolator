@@ -156,6 +156,28 @@ def test_extrapolate_energies_df(all_sapt_terms):
             print(i, target)
             assert np.all(df[target] - df[i] < 1e-12)
 
+def test_extrapolate_energies_df2(all_sapt_terms):
+    df = pd.read_pickle("hbc6-plat-atz-all.pkl")
+    df = src.compute_sapt_terms.compute_sapt_terms(df)
+    extrapolate_energies_df(
+        c1_data={
+            "df_path": i,
+            "c_label": "TZ",
+            "C1": 3,
+        },
+        c2_data={
+            "df_path": j,
+            "c_label": "QZ",
+            "C2": 4,
+        },
+        df_out=df_path_out,
+    )
+    print(df.columns.values)
+    for i in all_sapt_terms:
+        if i in df.columns:
+            target = i + " (TZ)"
+            print(i, target)
+            assert np.all(df[target] - df[i] < 1e-12)
 
 
 

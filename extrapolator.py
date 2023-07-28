@@ -64,7 +64,7 @@ def extrapolate_energies_df(
     },
     df_out: str = "sapt_ref_data/cbs/hbc6-plat-adtz-all.pkl",
 ):
-    """Take in two dictionaries, one for results in a smaller basis 
+    """Take in two dictionaries, one for results in a smaller basis
     (c1_data), and one for results in a larger basis (c2_data), and
     a path for an output dataframe in pkl format.  The dictionaries
     contain a path for a dataframe in pkl format, a label (e.g.,
@@ -73,15 +73,15 @@ def extrapolate_energies_df(
 
     The function then does a 2-point Helgaker extrapolation on columns
     with SAPT data matching one of the labels below in extrap_columns
-    (only electron-correlation related columns).  It copies over 
-    Hartree-Fock level columns (e.g., SAPT ELST10,R ENERGY and others 
+    (only electron-correlation related columns).  It copies over
+    Hartree-Fock level columns (e.g., SAPT ELST10,R ENERGY and others
     listed in copy_from_large_basis_columns).
 
     The resulting dataframe is written out to the pkl file specified
 
     A couple of default dictionaries are provided for testing purposes.
     """
-    
+
     # some notes about exchange-scaling:
     # many of the fundamental SAPT terms are computed using the
     # single-exchange (S^2) approximation.  In Ed Hohenstein's original
@@ -176,7 +176,7 @@ def extrapolate_energies_df(
     # copy HF-level data (not depending on electron correlation) from the
     # larger basis, just like we would do in focal-point methods
     for i in copy_from_larger_basis_columns:
-        if i in df_c2.columns.values:
+        if f"{i} ({c2_label})" in df_c2.columns.values:
             df[i] = df[i + f" ({c2_label})"]
 
     # extrapolate the electron-correlation dependent terms
@@ -187,18 +187,19 @@ def extrapolate_energies_df(
             ),
             axis=1,
         )
-    # now compute SAPT terms from the extrapolated energies
-    df = src.compute_sapt_terms.compute_sapt_terms(df)
-    
-    # now select the new data for export
     subset = [
         i
         for i in df.columns.values
         if f" ({c1_label})" not in i and f" ({c2_label})" not in i
     ]
-    df_subset = df[subset]
-    df_subset.to_pickle(df_out)
-
+    df = df[subset].copy()
+    # now compute SAPT terms from the extrapolated energies
+    df = src.compute_sapt_terms.compute_sapt_terms(df)
+    # now select the new data for export
+    print("Subset:")
+    for i in df.columns.values:
+        print(i)
+    df.to_pickle(df_out)
     return
 
 
@@ -232,6 +233,7 @@ def generate_output_pkls():
                     },
                     df_out=df_path_out,
                 )
+                return
     print("Creating: aTZ + aQZ -> aTQZ")
     for i in fs_atz:
         db_atz = i.split("/")[-1].split("-")[0]
@@ -263,12 +265,12 @@ def generate_output_pkls():
 def main():
     generate_output_pkls()
     # example reading output
-    df = pd.read_pickle("sapt_ref_data/adtz/hbc6-plat-adtz-all.pkl")
-    df = pd.read_pickle("sapt_ref_data/atqz/hbc6-plat-atqz-all.pkl")
-    print(df.columns.values)
+    # df = pd.read_pickle("sapt_ref_data/adtz/hbc6-plat-adtz-all.pkl")
+    # df = pd.read_pickle("sapt_ref_data/atqz/hbc6-plat-atqz-all.pkl")
+    # print(df.columns.values)
     # pd.set_option("display.max_columns", None)
     # pd.set_option("display.max_rows", None)
-    print(df)
+    # print(df)
     return
 
 
