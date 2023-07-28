@@ -64,6 +64,24 @@ def extrapolate_energies_df(
     },
     df_out: str = "sapt_ref_data/cbs/hbc6-plat-adtz-all.pkl",
 ):
+    """Take in two dictionaries, one for results in a smaller basis 
+    (c1_data), and one for results in a larger basis (c2_data), and
+    a path for an output dataframe in pkl format.  The dictionaries
+    contain a path for a dataframe in pkl format, a label (e.g.,
+    DZ, TZ), and a cardinal number for the basis set (e.g., 2 for DZ,
+    3 for TZ, etc.).  The cardinal numbers must be adjacent.
+
+    The function then does a 2-point Helgaker extrapolation on columns
+    with SAPT data matching one of the labels below in extrap_columns
+    (only electron-correlation related columns).  It copies over 
+    Hartree-Fock level columns (e.g., SAPT ELST10,R ENERGY and others 
+    listed in copy_from_large_basis_columns).
+
+    The resulting dataframe is written out to the pkl file specified
+
+    A couple of default dictionaries are provided for testing purposes.
+    """
+    
     # some notes about exchange-scaling:
     # many of the fundamental SAPT terms are computed using the
     # single-exchange (S^2) approximation.  In Ed Hohenstein's original
@@ -154,6 +172,14 @@ def extrapolate_energies_df(
     df_c1.columns = df_c1.columns.values + f" ({c1_label})"
     df_c2.columns = df_c2.columns.values + f" ({c2_label})"
     df = pd.concat([df_c1, df_c2], axis=1)
+
+    # copy HF-level data (not depending on electron correlation) from the
+    # larger basis, just like we would do in focal-point methods
+    for i in copy_from_larger_basis_columns:
+        if i in df_c2.columns.values:
+            df[i] = df[i + f" ({c2_label})"]
+
+    # extrapolate the electron-correlation dependent terms
     for i in extrap_columns:
         df[i] = df.apply(
             lambda r: extrapolate_energies(
@@ -162,13 +188,9 @@ def extrapolate_energies_df(
             axis=1,
         )
     # now compute SAPT terms from the extrapolated energies
-    df = src.extrap_df.compute_sapt_terms(df)
-    # copy HF-level data (not depending on electron correlation) from the
-    # larger basis, just like we would do in focal-point methods
-    for i in copy_from_larger_basis_columns:
-        if i in df_c2.columns.values:
-            df[i] = df[i + f" ({c2_label})"]
-
+    df = src.compute_sapt_terms.compute_sapt_terms(df)
+    
+    # now select the new data for export
     subset = [
         i
         for i in df.columns.values
@@ -177,9 +199,6 @@ def extrapolate_energies_df(
     df_subset = df[subset]
     df_subset.to_pickle(df_out)
 
-    # I need to store that as a series inside a dataframe df_dt ... if I
-    # initialize it as empty first can I compute it directly to the desired
-    # location?  Or else I need to copy the computed series into the dataframe
     return
 
 

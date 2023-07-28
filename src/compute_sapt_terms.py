@@ -1,15 +1,10 @@
-# TODO: compute SAPT EXCHSCAL1 and SAPT EXCHSCAL3
 def compute_sapt_terms(df, sapt_alpha=None):
     """
     Computes the SAPT variables from fundamental components.
     """
-    if sapt_alpha is None:
-        sapt_alpha_col = "SAPT ALPHA"
-    else:
-        df['SAPT ALPHA USER'] = [sapt_alpha for i in range(len(df))]
-        sapt_alpha_col = 'SAPT ALPHA USER'
-
-    # TODO: Allow user to set SAPT ALPHA, choose larger basis by default
+    sapt_alpha_col = "SAPT ALPHA"
+    if sapt_alpha is not None:
+        df['SAPT ALPHA'] = [sapt_alpha for i in range(len(df))]
 
     x = ['SAPT EXCH10 ENERGY', 'SAPT EXCH10(S^2) ENERGY']
     if set([i for i in x if type(i) == str]).issubset(df.columns):
@@ -391,6 +386,4 @@ def compute_sapt_terms(df, sapt_alpha=None):
     if set([i for i in x if type(i) == str]).issubset(df.columns):
         df['SAPT2+3(CCD)DMP2 TOTAL ENERGY'] = df.apply(lambda r: sum([r[i] for i in x]), axis = 1)
 
-    if sapt_alpha is not None:
-        df.drop("SAPT ALPHA USER")
     return df

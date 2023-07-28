@@ -148,7 +148,7 @@ def test_extrapolate_energies_df(all_sapt_terms):
     for col in starting_cols:
         s = col + " (TZ)"
         df[col] = df[s]
-    df = src.extrap_df.compute_sapt_terms(df)
+    df = src.compute_sapt_terms.compute_sapt_terms(df)
     print(df.columns.values)
     for i in all_sapt_terms:
         if i in df.columns:
