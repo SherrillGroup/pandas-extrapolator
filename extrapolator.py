@@ -4,6 +4,13 @@ from pprint import pprint as pp
 import os
 import src
 
+# TODO: add path to psi4/db to PYTHONPATH to get access to database
+# ex. import BBI
+#     BBI.bind[key]
+
+# might look at cdsgroup/qcdb --branch data
+#   has citations for binds based on references
+
 
 def extrapolate_energies(C1, C2, E1, E2):
     """Test extrapolation of two individual correlation energies, to
@@ -134,7 +141,6 @@ def extrapolate_energies_df(
         "SAPT IND30,R ENERGY",
         "SAPT MP2 CORRELATION ENERGY",  # supermolecular MP2 E_corr for dMP2
     ]
-    # TODO: check if exist when copying...
     copy_from_larger_basis_columns = [
         "SAPT ELST10,R ENERGY",
         "SAPT EXCH10 ENERGY",
@@ -144,7 +150,6 @@ def extrapolate_energies_df(
         "SAPT IND20,U ENERGY",
         "SAPT EXCH-IND20,U ENERGY",
     ]
-    # TODO: take above lists to make new df for Lori functions
 
     df_c1.columns = df_c1.columns.values + f" ({c1_label})"
     df_c2.columns = df_c2.columns.values + f" ({c2_label})"
@@ -238,6 +243,13 @@ def generate_output_pkls():
 
 def main():
     generate_output_pkls()
+    # example reading output
+    df = pd.read_pickle("sapt_ref_data/adtz/hbc6-plat-adtz-all.pkl")
+    df = pd.read_pickle("sapt_ref_data/atqz/hbc6-plat-atqz-all.pkl")
+    print(df.columns.values)
+    # pd.set_option("display.max_columns", None)
+    # pd.set_option("display.max_rows", None)
+    print(df)
     return
 
 
