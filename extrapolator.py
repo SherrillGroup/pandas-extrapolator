@@ -160,6 +160,7 @@ def extrapolate_energies_df(
         "SAPT MP2 CORRELATION ENERGY",  # supermolecular MP2 E_corr for dMP2
     ]
     copy_from_larger_basis_columns = [
+        "SAPT ALPHA",
         "SAPT ELST10,R ENERGY",
         "SAPT EXCH10 ENERGY",
         "SAPT EXCH10(S^2) ENERGY",

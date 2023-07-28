@@ -2,7 +2,6 @@ def compute_sapt_terms(df, sapt_alpha=None):
     """
     Computes the SAPT variables from fundamental components.
     """
-    sapt_alpha_col = "SAPT ALPHA"
     if sapt_alpha is not None:
         df['SAPT ALPHA'] = [sapt_alpha for i in range(len(df))]
 
@@ -14,8 +13,9 @@ def compute_sapt_terms(df, sapt_alpha=None):
     if set([i for i in x if type(i) == str]).issubset(df.columns):
         df['SAPT EXCHSCAL3'] = df.apply(lambda r: r[x[0]] ** 3, axis=1)
 
-    x = ['SAPT EXCHSCAL1', sapt_alpha_col]
+    x = ['SAPT EXCHSCAL1', "SAPT ALPHA"]
     if set([i for i in x if type(i) == str]).issubset(df.columns):
+        print("computing exchscal")
         df['SAPT EXCHSCAL'] = df.apply(lambda r: r[x[0]] ** r[x[1]], axis=1)
 
     x = ['SAPT HF TOTAL ENERGY', 'SAPT ELST10,R ENERGY', 'SAPT EXCH10 ENERGY', 'SAPT IND20,R ENERGY', 'SAPT EXCH-IND20,R ENERGY']
