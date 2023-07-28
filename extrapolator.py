@@ -196,9 +196,6 @@ def extrapolate_energies_df(
     # now compute SAPT terms from the extrapolated energies
     df = src.compute_sapt_terms.compute_sapt_terms(df)
     # now select the new data for export
-    print("Subset:")
-    for i in df.columns.values:
-        print(i)
     df.to_pickle(df_out)
     return
 
@@ -233,7 +230,6 @@ def generate_output_pkls():
                     },
                     df_out=df_path_out,
                 )
-                return
     print("Creating: aTZ + aQZ -> aTQZ")
     for i in fs_atz:
         db_atz = i.split("/")[-1].split("-")[0]
