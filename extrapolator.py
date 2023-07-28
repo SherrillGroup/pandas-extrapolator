@@ -169,7 +169,6 @@ def extrapolate_energies_df(
         for i in df.columns.values
         if f" ({c1_label})" not in i and f" ({c2_label})" not in i
     ]
-    print(subset)
     df_subset = df[subset]
     df_subset.to_pickle(df_out)
 
@@ -183,18 +182,17 @@ def generate_output_pkls():
     # Ok mess around for now and test
     fs_adz = glob("sapt_ref_data/adz/*.pkl")
     fs_atz = glob("sapt_ref_data/atz/*.pkl")
-    fs_qz = glob("sapt_ref_data/qz/*.pkl")
+    fs_qz = glob("sapt_ref_data/aqz/*.pkl")
+    print("Creating: aDZ + aTZ -> aDTZ")
     for i in fs_atz:
         db_atz = i.split("/")[-1].split("-")[0]
         for j in fs_adz:
             db_adz = j.split("/")[-1].split("-")[0]
             if db_atz == db_adz:
-                print(db_atz, db_adz)
-                print(i, j)
                 df_path_out = i.replace("atz", "adtz")
-                print(df_path_out)
+                print(db_atz, i, j)
+                print("Extrapolated results:", df_path_out, end="\n\n")
                 dir_path = "/".join(df_path_out.split("/")[:-1])
-                print(dir_path)
                 if not os.path.exists(dir_path):
                     os.mkdir(dir_path)
                 extrapolate_energies_df(
@@ -210,16 +208,16 @@ def generate_output_pkls():
                     },
                     df_out=df_path_out,
                 )
-                return
+    print("Creating: aTZ + aQZ -> aTQZ")
+    for i in fs_atz:
+        db_atz = i.split("/")[-1].split("-")[0]
         for j in fs_qz:
             db_qz = j.split("/")[-1].split("-")[0]
             if db_atz == db_adz:
-                print(db_atz, db_adz)
-                print(i, j)
+                print(db_atz, i, j)
+                print("Extrapolated results:", df_path_out, end="\n\n")
                 df_path_out = i.replace("atz", "atqz")
-                print(df_path_out)
                 dir_path = "/".join(df_path_out.split("/")[:-1])
-                print(dir_path)
                 if not os.path.exists(dir_path):
                     os.mkdir(dir_path)
                 extrapolate_energies_df(
@@ -235,14 +233,11 @@ def generate_output_pkls():
                     },
                     df_out=df_path_out,
                 )
-                return
+    return
 
 
 def main():
     generate_output_pkls()
-    # test output
-    df = pd.read_pickle("sapt_ref_data/adtz/hbc6-plat-adtz-all.pkl")
-    print(df.columns)
     return
 
 
