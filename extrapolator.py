@@ -148,6 +148,7 @@ def extrapolate_energies_df(
         "SAPT ELST13,R ENERGY",
         "SAPT EST.DISP22(T) ENERGY",
         "SAPT EST.DISP22(T)(CCD) ENERGY",
+        "SAPT EXCH-DISP20 ENERGY",
         "SAPT EXCH-DISP30 ENERGY",
         "SAPT EXCH-IND-DISP30 ENERGY",
         "SAPT EXCH-IND22 ENERGY",
