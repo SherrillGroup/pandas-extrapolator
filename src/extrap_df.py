@@ -1,5 +1,5 @@
 # TODO: compute SAPT EXCHSCAL1 and SAPT EXCHSCAL3
-def compute_extrapolations(df, sapt_alpha=None):
+def compute_sapt_terms(df, sapt_alpha=None):
     """
     Computes the SAPT variables from fundamental components.
     """

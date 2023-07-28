@@ -83,14 +83,13 @@ def extrapolate_energies_df(f1, f2, df_out):
 
     # read a double-zeta file
     df_d = pd.read_pickle("sapt_ref_data/adz/hbc6-plat-adz-all.pkl")
-    # read a triple-zeta file
     df_t = pd.read_pickle("sapt_ref_data/atz/hbc6-plat-atz-all.pkl")
     cols = df_d.columns.values
 
     # now extrapolate the SAPT0 dispersion energy
-    df_tmp = (3**3) / (3**3 - 2**3) * df_t["SAPT0 DISP ENERGY"] - (
-        (2**3) / (3**3 - 2**3)
-    ) * df_d["SAPT0 DISP ENERGY"]
+    # df_tmp = (3**3) / (3**3 - 2**3) * df_t["SAPT0 DISP ENERGY"] - (
+    #     (2**3) / (3**3 - 2**3)
+    # ) * df_d["SAPT0 DISP ENERGY"]
     # Need to grab all columns that are 'correlated' terms
 
     # list all possible columns to extrapolate.  if a lower level of
@@ -140,6 +139,7 @@ def extrapolate_energies_df(f1, f2, df_out):
         df[i] = df.apply(
             lambda r: extrapolate_energies(2, 3, r[i + " (DZ)"], r[i + " (TZ)"]), axis=1
         )
+    df = src.extrap_df.compute_sapt_terms(df)
     """
     df["SAPT0 DISP ENERGY"] = (
         df["SAPT DISP20 ENERGY (TZ)"] + df["SAPT EXCH-DISP20 ENERGY (TZ)"]
@@ -159,8 +159,6 @@ def extrapolate_energies_df(f1, f2, df_out):
         + df["SAPT0 EXCH ENERGY"]
     )
     # print(df.columns.values)
-    df = src.extrap_df.compute_extrapolations(df)
-    """
     for n, r in df.iterrows():
         disp = r["SAPT0 DISP ENERGY"]
         exch = r["SAPT0 EXCH ENERGY"]
@@ -174,6 +172,7 @@ def extrapolate_energies_df(f1, f2, df_out):
         assert abs(elst - elst_tz) < 1e-12
         assert abs(ind - ind_tz) < 1e-12
         assert abs(exch - exch_tz) < 1e-12
+    """
     # copy HF-level data (not depending on electron correlation) from the
     # larger basis, just like we would do in focal-point methods
     # TODO: Be able to use all of Lori's lambda functions
