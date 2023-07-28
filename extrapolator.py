@@ -44,7 +44,19 @@ def extrapolate_energies(C1, C2, E1, E2):
     return E_CBS
 
 
-def extrapolate_energies_df(f1, f2, df_out):
+def extrapolate_energies_df(
+    c1_data: dict = {
+        "df_path": "sapt_ref_data/adz/hbc6-plat-adz-all.pkl",
+        "c_label": "DZ",
+        "C1": 2,
+    },
+    c2_data: dict = {
+        "df_path": "sapt_ref_data/atz/hbc6-plat-atz-all.pkl",
+        "c_label": "TZ",
+        "C2": 3,
+    },
+    df_out: str = "sapt_ref_data/cbs/hbc6-plat-adtz-all.pkl",
+):
     # some notes about exchange-scaling:
     # many of the fundamental SAPT terms are computed using the
     # single-exchange (S^2) approximation.  In Ed Hohenstein's original
@@ -81,10 +93,12 @@ def extrapolate_energies_df(f1, f2, df_out):
     # SAPT EXCHSCAL3, which is used the formulas to compute sSAPT energies.
     # -CDS 7/27/23
 
-    # read a double-zeta file
-    df_d = pd.read_pickle("sapt_ref_data/adz/hbc6-plat-adz-all.pkl")
-    df_t = pd.read_pickle("sapt_ref_data/atz/hbc6-plat-atz-all.pkl")
-    cols = df_d.columns.values
+    df_c1 = pd.read_pickle(c1_data["df_path"])
+    df_c2 = pd.read_pickle(c2_data["df_path"])
+    C1 = c1_data["C1"]
+    C2 = c2_data["C2"]
+    c1_label = c1_data["c_label"]
+    c2_label = c2_data["c_label"]
 
     # now extrapolate the SAPT0 dispersion energy
     # df_tmp = (3**3) / (3**3 - 2**3) * df_t["SAPT0 DISP ENERGY"] - (
@@ -132,57 +146,29 @@ def extrapolate_energies_df(f1, f2, df_out):
     ]
     # TODO: take above lists to make new df for Lori functions
 
-    df_d.columns = df_d.columns.values + " (DZ)"
-    df_t.columns = df_t.columns.values + " (TZ)"
-    df = pd.concat([df_d, df_t], axis=1)
+    df_c1.columns = df_c1.columns.values + f" ({c1_label})"
+    df_c2.columns = df_c2.columns.values + f" ({c2_label})"
+    df = pd.concat([df_c1, df_c2], axis=1)
     for i in extrap_columns:
         df[i] = df.apply(
-            lambda r: extrapolate_energies(2, 3, r[i + " (DZ)"], r[i + " (TZ)"]), axis=1
+            lambda r: extrapolate_energies(
+                2, 3, r[i + f" ({c1_label})"], r[i + f" ({c2_label})"]
+            ),
+            axis=1,
         )
+    # now compute SAPT terms from the extrapolated energies
     df = src.extrap_df.compute_sapt_terms(df)
-    """
-    df["SAPT0 DISP ENERGY"] = (
-        df["SAPT DISP20 ENERGY (TZ)"] + df["SAPT EXCH-DISP20 ENERGY (TZ)"]
-    )
-    df["SAPT0 ELST ENERGY"] = df["SAPT ELST10,R ENERGY (TZ)"]
-    df["SAPT0 IND ENERGY"] = (
-        # NOTE: SAPT EXCHSCAL is 1 due to alpha=0.0, 2023-07-26
-        df["SAPT IND20,R ENERGY (TZ)"] * df['SAPT EXCHSCAL (TZ)']
-        + df["SAPT HF(2) ENERGY (TZ)"]
-        + df["SAPT EXCH-IND20,R ENERGY (TZ)"]
-    )
-    df["SAPT0 EXCH ENERGY"] = df["SAPT EXCH10 ENERGY (TZ)"]
-    df["SAPT0 TOTAL ENERGY"] = (
-        df["SAPT0 DISP ENERGY"]
-        + df["SAPT0 ELST ENERGY"]
-        + df["SAPT0 IND ENERGY"]
-        + df["SAPT0 EXCH ENERGY"]
-    )
-    # print(df.columns.values)
-    for n, r in df.iterrows():
-        disp = r["SAPT0 DISP ENERGY"]
-        exch = r["SAPT0 EXCH ENERGY"]
-        exch_tz = r["SAPT0 EXCH ENERGY (TZ)"]
-        ind = r["SAPT0 IND ENERGY"]
-        ind_tz = r["SAPT0 IND ENERGY (TZ)"]
-        elst = r["SAPT0 ELST ENERGY"]
-        elst_tz = r["SAPT0 ELST ENERGY (TZ)"]
-        tot = r["SAPT0 TOTAL ENERGY"]
-        sapt_alpha = r["SAPT ALPHA (TZ)"]
-        assert abs(elst - elst_tz) < 1e-12
-        assert abs(ind - ind_tz) < 1e-12
-        assert abs(exch - exch_tz) < 1e-12
-    """
     # copy HF-level data (not depending on electron correlation) from the
     # larger basis, just like we would do in focal-point methods
-    # TODO: Be able to use all of Lori's lambda functions
-    # asser that derived values match original values (TZ)
-    # generalize code to handle DT or TQ
     for i in copy_from_larger_basis_columns:
-        if i in df_d.columns.values:
-            df[i] = df[i + " (TZ)"]
+        if i in df_c2.columns.values:
+            df[i] = df[i + f" ({c2_label})"]
 
-    subset = [i for i in df.columns.values if "(TZ)" not in i and "(DZ)" not in i]
+    subset = [
+        i
+        for i in df.columns.values
+        if f" ({c1_label})" not in i and f" ({c2_label})" not in i
+    ]
     print(subset)
     df_subset = df[subset]
     df_subset.to_pickle(df_out)
@@ -197,11 +183,11 @@ def generate_output_pkls():
     # Ok mess around for now and test
     fs_adz = glob("sapt_ref_data/adz/*.pkl")
     fs_atz = glob("sapt_ref_data/atz/*.pkl")
+    fs_qz = glob("sapt_ref_data/qz/*.pkl")
     for i in fs_atz:
         db_atz = i.split("/")[-1].split("-")[0]
         for j in fs_adz:
             db_adz = j.split("/")[-1].split("-")[0]
-            # TODO: Add in QZ for TQ extrapolation
             if db_atz == db_adz:
                 print(db_atz, db_adz)
                 print(i, j)
@@ -211,7 +197,44 @@ def generate_output_pkls():
                 print(dir_path)
                 if not os.path.exists(dir_path):
                     os.mkdir(dir_path)
-                extrapolate_energies_df(i, j, df_path_out)
+                extrapolate_energies_df(
+                    c1_data={
+                        "df_path": j,
+                        "c_label": "DZ",
+                        "C1": 2,
+                    },
+                    c2_data={
+                        "df_path": i,
+                        "c_label": "TZ",
+                        "C2": 3,
+                    },
+                    df_out=df_path_out,
+                )
+                return
+        for j in fs_qz:
+            db_qz = j.split("/")[-1].split("-")[0]
+            if db_atz == db_adz:
+                print(db_atz, db_adz)
+                print(i, j)
+                df_path_out = i.replace("atz", "atqz")
+                print(df_path_out)
+                dir_path = "/".join(df_path_out.split("/")[:-1])
+                print(dir_path)
+                if not os.path.exists(dir_path):
+                    os.mkdir(dir_path)
+                extrapolate_energies_df(
+                    c1_data={
+                        "df_path": i,
+                        "c_label": "TZ",
+                        "C1": 3,
+                    },
+                    c2_data={
+                        "df_path": j,
+                        "c_label": "QZ",
+                        "C2": 4,
+                    },
+                    df_out=df_path_out,
+                )
                 return
 
 
