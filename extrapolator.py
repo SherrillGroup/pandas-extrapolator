@@ -212,8 +212,8 @@ def generate_output_pkls():
     for i in fs_atz:
         db_atz = i.split("/")[-1].split("-")[0]
         for j in fs_qz:
-            db_qz = j.split("/")[-1].split("-")[0]
-            if db_atz == db_adz:
+            db_aqz = j.split("/")[-1].split("-")[0]
+            if db_atz == db_aqz:
                 print(db_atz, i, j)
                 print("Extrapolated results:", df_path_out, end="\n\n")
                 df_path_out = i.replace("atz", "atqz")
