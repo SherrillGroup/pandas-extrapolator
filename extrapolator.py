@@ -264,13 +264,6 @@ def generate_output_pkls():
 
 def main():
     generate_output_pkls()
-    # example reading output
-    # df = pd.read_pickle("sapt_ref_data/adtz/hbc6-plat-adtz-all.pkl")
-    # df = pd.read_pickle("sapt_ref_data/atqz/hbc6-plat-atqz-all.pkl")
-    # print(df.columns.values)
-    # pd.set_option("display.max_columns", None)
-    # pd.set_option("display.max_rows", None)
-    # print(df)
     return
 
 
