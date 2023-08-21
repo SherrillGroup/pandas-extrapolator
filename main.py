@@ -302,6 +302,35 @@ def stats_scale_by_total_energy():
         print(f"    MAE unscaled: {mae1:.6f}\n    MAE scaled:   {mae2:.6f}")
     return
 
+def extrap_plotting():
+    levels_of_sapt = [
+        'SAPT0 TOTAL ENERGY',
+        'SSAPT0 TOTAL ENERGY',
+        'SAPT2 TOTAL ENERGY',
+        'SAPT2+ TOTAL ENERGY',
+        'SAPT2+(CCD) TOTAL ENERGY',
+        'SAPT2+DMP2 TOTAL ENERGY',
+        'SAPT2+(CCD)DMP2 TOTAL ENERGY',
+        'SAPT2+(3) TOTAL ENERGY',
+        'SAPT2+(3)(CCD) TOTAL ENERGY',
+        'SAPT2+(3)DMP2 TOTAL ENERGY',
+        'SAPT2+(3)(CCD)DMP2 TOTAL ENERGY',
+        'SAPT2+3 TOTAL ENERGY',
+        'SAPT2+3(CCD) TOTAL ENERGY',
+        'SAPT2+3DMP2 TOTAL ENERGY',
+        'SAPT2+3(CCD)DMP2 TOTAL ENERGY',
+    ]
+    # TODO: only look at qz data ones...
+    basis_set = [
+            "dz",
+            "tz",
+            "qz",
+            "dt",
+            "tq",
+            ]
+    # TODO: compare with reference values CCSD...
+    # NOTE: standard extrapolation equations might not be the best for SAPT
+    return
 
 
 def main():
