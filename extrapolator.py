@@ -263,7 +263,16 @@ def generate_output_pkls():
 
 
 def main():
-    generate_output_pkls()
+    # generate_output_pkls()
+    df = pd.read_pickle("sapt_ref_data/adz/hbc6-plat-adz-all.pkl")
+    print(df.columns.values)
+    pd.set_option("display.max_columns", None)
+    pd.set_option("display.max_rows", None)
+    print(df.iloc[0])
+    df['SAPT0_test'] = df.apply(lambda r: r['SAPT HF TOTAL ENERGY'] + r['SAPT DISP20 ENERGY'] + r["SAPT EXCH-DISP20 ENERGY"], axis=1)
+    print(df.iloc[0][["SAPT0_test", "SAPT0 TOTAL ENERGY"]])
+    r1 = df.iloc[0][["SAPT0_test", "SAPT0 TOTAL ENERGY"]].values
+    assert r1[0] == r1[1]
     return
 
 
