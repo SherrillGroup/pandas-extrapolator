@@ -32,10 +32,10 @@ extrap_columns_all = [
 ]
 
 extrap_columns = [
-    # "SAPT DISP20 ENERGY",
+    "SAPT DISP20 ENERGY",
     "SAPT DISP21 ENERGY",
     "SAPT DISP22(S)(CCD) ENERGY",
-    # "SAPT DISP2(CCD) ENERGY",
+    "SAPT DISP2(CCD) ENERGY",
     "SAPT DISP22(SDQ) ENERGY",
     "SAPT DISP22(T) ENERGY",
     "SAPT DISP22(T)(CCD) ENERGY",
@@ -43,18 +43,35 @@ extrap_columns = [
     "SAPT ELST12,R ENERGY",
     "SAPT ELST13,R ENERGY",
     "SAPT EST.DISP22(T) ENERGY",
-    # "SAPT EST.DISP22(T)(CCD) ENERGY",
+    "SAPT EST.DISP22(T)(CCD) ENERGY",
     "SAPT EXCH-DISP20 ENERGY",
     "SAPT EXCH-DISP30 ENERGY",
-    # "SAPT EXCH-IND-DISP30 ENERGY",
+    "SAPT EXCH-IND-DISP30 ENERGY",
     "SAPT EXCH-IND22 ENERGY",
     "SAPT EXCH-IND30,R ENERGY",
     "SAPT EXCH11(S^2) ENERGY",
     "SAPT EXCH12(S^2) ENERGY",
-    # "SAPT IND-DISP30 ENERGY",
+    "SAPT IND-DISP30 ENERGY",
     "SAPT IND22 ENERGY",
     "SAPT IND30,R ENERGY",
     "SAPT MP2 CORRELATION ENERGY",  # supermolecular MP2 E_corr for dMP2
+]
+levels_of_sapt = [
+    'SAPT0 TOTAL ENERGY',
+    'SSAPT0 TOTAL ENERGY',
+    'SAPT2 TOTAL ENERGY',
+    'SAPT2+ TOTAL ENERGY',
+    'SAPT2+(CCD) TOTAL ENERGY',
+    'SAPT2+DMP2 TOTAL ENERGY',
+    'SAPT2+(CCD)DMP2 TOTAL ENERGY',
+    'SAPT2+(3) TOTAL ENERGY',
+    'SAPT2+(3)(CCD) TOTAL ENERGY',
+    'SAPT2+(3)DMP2 TOTAL ENERGY',
+    'SAPT2+(3)(CCD)DMP2 TOTAL ENERGY',
+    'SAPT2+3 TOTAL ENERGY',
+    'SAPT2+3(CCD) TOTAL ENERGY',
+    'SAPT2+3DMP2 TOTAL ENERGY',
+    'SAPT2+3(CCD)DMP2 TOTAL ENERGY',
 ]
 
 def gather_dfs():
@@ -78,75 +95,97 @@ def gather_dfs():
         df = pd.read_pickle(pkl)
         frames.append(df)
     df_dt = pd.concat(frames)
-    df_dt.columns = df_dt.columns.values + f" (adtz)"
+    for i in df_dt.columns.values:
+        df_dt[i + f" (adtz)"] = df_dt[i].astype(np.float64)
+    # df_dt.columns = df_dt.columns.values + f" (adtz)"
     df_tq.columns = df_tq.columns.values + f" (atqz)"
     df = pd.concat([df_dt, df_tq], axis=1)
     return df
 
 
-def stats_split_by_extrap_col():
+def stats_scalar_sapt(start=0.98, end=1.03, step=0.01):
+    stats_unscaled = []
     stats = []
     df = gather_dfs()
     df = df.apply(lambda c: c * 627.509)
-    for c in extrap_columns:
-        sub_stats = []
-        # sub_stats_c = []
-        for i in np.arange(0.8, 1.2, 0.01):
+    for c in levels_of_sapt:
+        diff = df[c + " (atqz)"] - df[c + " (adtz)"]
+        mae1 = np.abs(diff).mean()
+        rmse1 = np.sqrt((diff ** 2).mean())
+        stats_unscaled.append([c, mae1, rmse1])
+    print(f"MAE: {mae1:.4f} RMSE: {rmse1:.4f}")
+    for i in np.arange(start, end, step):
+        print(i)
+        for c in extrap_columns:
             c_dt = c + " (adtz)"
-            c_tq = c + " (atqz)"
-            df["diff"] = (df[c_tq] - df[c_dt] * i)
-            df["diff_og"] = (df[c_tq] - df[c_dt])
-            mae = df["diff"].abs().mean()
-            mae_og = df["diff_og"].abs().mean()
-            rmse = np.sqrt((df["diff"] ** 2).mean())
-            sub_stats.append([i, mae, rmse, mae_og])
-            # sub_stats_c.append([i, mae, rmse, c])
+            df[c] = (df[c_dt] * i)
+        df = src.compute_sapt_terms.compute_sapt_terms(df)
+        sub_stats = []
+        print("MAE and RMSE for each level")
+        for n, s in enumerate(levels_of_sapt):
+            diff = df[s + " (atqz)"] - df[s]
+            mae = np.abs(diff).mean()
+            rmse = np.sqrt((diff ** 2).mean())
+            sub_stats.append([i, mae, rmse])
+            mae1 = stats_unscaled[n][1]
+            rmse1 = stats_unscaled[n][2]
+            print(f"{s} mae: {mae:.4f}, mae_og: {mae1:.4f}, rmse: {rmse:.4f}, rmse_og: {rmse1:.4f}")
         sub_stats.sort(key=lambda x: x[1])
         sub_stats = np.array(sub_stats)
-        opt_param = sub_stats[0, 0]
-        if abs(opt_param - 1.0) < 1e-14:
-            print(c, 'opt_param == 1.0')
-        print(c)
-        pp(sub_stats[:3])
         mae_mae = np.array(sub_stats)[:, 1].mean()
         rmse_mae = np.array(sub_stats)[:, 2].mean()
-        mae_mae_og = np.array(sub_stats)[:, 3].mean()
-        stats.append([i, mae_mae, rmse_mae, mae_mae_og])
+        stats.append([i, mae_mae, rmse_mae])
     stats.sort(key=lambda x: x[1])
-    # pp(stats[:10])
-    # pp(stats)
+    pp(stats)
     opt_param = stats[0][0]
     print(opt_param)
     pd.set_option("display.max_rows", None)
-    df2 = df.copy()
-    df2.rename(columns={c: c.replace(" (adtz)", "") for c in df2.columns}, inplace=True)
     for c in extrap_columns:
-        df2[c] = df2[c] * opt_param
-    df2 = src.compute_sapt_terms.compute_sapt_terms(df2)
-    levels_of_sapt = [
-        'SAPT0 TOTAL ENERGY',
-        'SSAPT0 TOTAL ENERGY',
-        'SAPT2 TOTAL ENERGY',
-        'SAPT2+ TOTAL ENERGY',
-        'SAPT2+(CCD) TOTAL ENERGY',
-        'SAPT2+DMP2 TOTAL ENERGY',
-        'SAPT2+(CCD)DMP2 TOTAL ENERGY',
-        'SAPT2+(3) TOTAL ENERGY',
-        'SAPT2+(3)(CCD) TOTAL ENERGY',
-        'SAPT2+(3)DMP2 TOTAL ENERGY',
-        'SAPT2+(3)(CCD)DMP2 TOTAL ENERGY',
-        'SAPT2+3 TOTAL ENERGY',
-        'SAPT2+3(CCD) TOTAL ENERGY',
-        'SAPT2+3DMP2 TOTAL ENERGY',
-        'SAPT2+3(CCD)DMP2 TOTAL ENERGY',
-    ]
+        df[c] = df[c + " (adtz)"] * opt_param
+    df = src.compute_sapt_terms.compute_sapt_terms(df)
 
     for c in levels_of_sapt:
         df[c + "_diff"] = df[c + " (atqz)"] - df[c + " (adtz)"]
         rmse1 = np.sqrt((df[c + "_diff"] ** 2).mean())
-        df2[c + "_diff_scaled"] = df2[c + " (atqz)"] - df2[c]
-        rmse2 = np.sqrt((df2[c + "_diff_scaled"] ** 2).mean())
-        print(f"{c}:\n    RMSE unscaled: {rmse1:.6f}\n    RMSE scaled:   {rmse2:.6f}")
+        mae1 = np.abs(df[c + "_diff"]).mean()
+        df[c + "_diff_scaled"] = df[c + " (atqz)"] - df[c]
+        rmse2 = np.sqrt((df[c + "_diff_scaled"] ** 2).mean())
+        mae2 = np.abs(df[c + "_diff_scaled"]).mean()
+        print(f"{c}:\n    MAE unscaled: {mae1:.4f}\n    MAE scaled:   {mae2:.4f}")
+        print(f"    RMSE unscaled: {rmse1:.4f}\n    RMSE scaled:   {rmse2:.4f}")
+    return
+
+def stats_sapt_scalar(start= 0.96, end=1.03, step=0.01):
+    stats_unscaled = []
+    stats = []
+    df = gather_dfs()
+    df = df.apply(lambda c: c * 627.509)
+    opt_param_for_lvl_sapt = {}
+    for c in levels_of_sapt:
+        diff = df[c + " (atqz)"] - df[c + " (adtz)"]
+        mae1 = np.abs(diff).mean()
+        rmse1 = np.sqrt((diff ** 2).mean())
+        stats_unscaled.append([c, mae1, rmse1])
+    print(f"MAE: {mae1:.4f} RMSE: {rmse1:.4f}")
+    for n, s in enumerate(levels_of_sapt):
+        print(f"Level of SAPT: {s}")
+        sub_stats = []
+        for i in np.arange(start, end, step):
+            for c in extrap_columns:
+                c_dt = c + " (adtz)"
+                df[c] = (df[c_dt] * i)
+            df = src.compute_sapt_terms.compute_sapt_terms(df)
+            diff = df[s + " (atqz)"] - df[s]
+            mae = np.abs(diff).mean()
+            rmse = np.sqrt((diff ** 2).mean())
+            sub_stats.append([i, mae, rmse])
+            mae1 = stats_unscaled[n][1]
+            rmse1 = stats_unscaled[n][2]
+            print(f"  {i:.4f}  mae: {mae:.4f}, mae_og: {mae1:.4f}, rmse: {rmse:.4f}, rmse_og: {rmse1:.4f}")
+        sub_stats.sort(key=lambda x: x[1])
+        sub_stats = np.array(sub_stats)
+        stats.append([s, sub_stats[0][0], sub_stats[0][1], sub_stats[0][2]])
+    pp(stats)
     return
 
 def stats_split_by_extrap_col_opt_per_extrap_col():
@@ -303,23 +342,6 @@ def stats_scale_by_total_energy():
     return
 
 def extrap_plotting():
-    levels_of_sapt = [
-        'SAPT0 TOTAL ENERGY',
-        'SSAPT0 TOTAL ENERGY',
-        'SAPT2 TOTAL ENERGY',
-        'SAPT2+ TOTAL ENERGY',
-        'SAPT2+(CCD) TOTAL ENERGY',
-        'SAPT2+DMP2 TOTAL ENERGY',
-        'SAPT2+(CCD)DMP2 TOTAL ENERGY',
-        'SAPT2+(3) TOTAL ENERGY',
-        'SAPT2+(3)(CCD) TOTAL ENERGY',
-        'SAPT2+(3)DMP2 TOTAL ENERGY',
-        'SAPT2+(3)(CCD)DMP2 TOTAL ENERGY',
-        'SAPT2+3 TOTAL ENERGY',
-        'SAPT2+3(CCD) TOTAL ENERGY',
-        'SAPT2+3DMP2 TOTAL ENERGY',
-        'SAPT2+3(CCD)DMP2 TOTAL ENERGY',
-    ]
     # TODO: only look at qz data ones...
     basis_set = [
             "dz",
@@ -335,8 +357,9 @@ def extrap_plotting():
 
 def main():
     # NOTE: Energy Units are Hartrees
-    # stats_split_by_extrap_col()
-    stats_split_by_extrap_col_opt_per_extrap_col()
+    stats_scalar_sapt(0.95, 1.05, 0.001)
+    stats_sapt_scalar(0.95, 1.05, 0.001)
+    # stats_split_by_extrap_col_opt_per_extrap_col()
     # stats_scale_by_total_energy()
     return
 
