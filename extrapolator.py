@@ -162,6 +162,8 @@ def extrapolate_energies_df(
         "SAPT MP2 CORRELATION ENERGY",  # supermolecular MP2 E_corr for dMP2
     ]
     copy_from_larger_basis_columns = [
+        "CURRENT REFERENCE ENERGY",
+        "CURRENT CORRELATION ENERGY",
         "SAPT ALPHA",
         "SAPT ELST10,R ENERGY",
         "SAPT EXCH10 ENERGY",
@@ -182,6 +184,11 @@ def extrapolate_energies_df(
     for i in copy_from_larger_basis_columns:
         if f"{i} ({c2_label})" in df_c2.columns.values:
             df[i] = df[i + f" ({c2_label})"]
+            r1 = df.iloc[0]
+            v = r1[i]
+            print(f"{i} {v}")
+
+
 
     # extrapolate the electron-correlation dependent terms
     for i in extrap_columns:
@@ -199,6 +206,7 @@ def extrapolate_energies_df(
     df = df[subset].copy()
     # now compute SAPT terms from the extrapolated energies
     df = src.compute_sapt_terms.compute_sapt_terms(df)
+    # print(df.columns.values)
     # now select the new data for export
     df.to_pickle(df_out)
     return
@@ -263,16 +271,16 @@ def generate_output_pkls():
 
 
 def main():
-    # generate_output_pkls()
-    df = pd.read_pickle("sapt_ref_data/adz/hbc6-plat-adz-all.pkl")
-    print(df.columns.values)
-    pd.set_option("display.max_columns", None)
-    pd.set_option("display.max_rows", None)
-    print(df.iloc[0])
-    df['SAPT0_test'] = df.apply(lambda r: r['SAPT HF TOTAL ENERGY'] + r['SAPT DISP20 ENERGY'] + r["SAPT EXCH-DISP20 ENERGY"], axis=1)
-    print(df.iloc[0][["SAPT0_test", "SAPT0 TOTAL ENERGY"]])
-    r1 = df.iloc[0][["SAPT0_test", "SAPT0 TOTAL ENERGY"]].values
-    assert r1[0] == r1[1]
+    generate_output_pkls()
+    # df = pd.read_pickle("sapt_ref_data/adz/hbc6-plat-adz-all.pkl")
+    # print(df.columns.values)
+    # pd.set_option("display.max_columns", None)
+    # pd.set_option("display.max_rows", None)
+    # print(df.iloc[0])
+    # df['SAPT0_test'] = df.apply(lambda r: r['SAPT HF TOTAL ENERGY'] + r['SAPT DISP20 ENERGY'] + r["SAPT EXCH-DISP20 ENERGY"], axis=1)
+    # print(df.iloc[0][["SAPT0_test", "SAPT0 TOTAL ENERGY"]])
+    # r1 = df.iloc[0][["SAPT0_test", "SAPT0 TOTAL ENERGY"]].values
+    # assert r1[0] == r1[1]
     return
 
 
