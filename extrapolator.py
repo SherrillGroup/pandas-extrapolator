@@ -186,7 +186,7 @@ def extrapolate_energies_df(
             df[i] = df[i + f" ({c2_label})"]
             r1 = df.iloc[0]
             v = r1[i]
-            print(f"{i} {v}")
+            # print(f"{i} {v}")
 
 
 
@@ -194,7 +194,7 @@ def extrapolate_energies_df(
     for i in extrap_columns:
         df[i] = df.apply(
             lambda r: extrapolate_energies(
-                2, 3, r[i + f" ({c1_label})"], r[i + f" ({c2_label})"]
+                C1, C2, r[i + f" ({c1_label})"], r[i + f" ({c2_label})"]
             ),
             axis=1,
         )
@@ -212,11 +212,8 @@ def extrapolate_energies_df(
     return
 
 
-def generate_output_pkls():
+def generate_output_pkls(fs_adz, fs_atz, fs_qz):
     # Ok mess around for now and test
-    fs_adz = glob("sapt_ref_data/adz/*.pkl")
-    fs_atz = glob("sapt_ref_data/atz/*.pkl")
-    fs_qz = glob("sapt_ref_data/aqz/*.pkl")
     print("Creating: aDZ + aTZ -> aDTZ")
     for i in fs_atz:
         db_atz = i.split("/")[-1].split("-")[0]
@@ -269,9 +266,59 @@ def generate_output_pkls():
                 )
     return
 
+def generate_output_pkls_all(fs_adz, fs_atz, fs_qz):
+    # Ok mess around for now and test
+    print("Creating: aDZ + aTZ -> aDTZ")
+    for i in fs_atz:
+        for j in fs_adz:
+            df_path_out = i.replace("atz", "adtz")
+            print("Extrapolated results:", df_path_out, end="\n\n")
+            dir_path = "/".join(df_path_out.split("/")[:-1])
+            if not os.path.exists(dir_path):
+                os.mkdir(dir_path)
+            extrapolate_energies_df(
+                c1_data={
+                    "df_path": j,
+                    "c_label": "DZ",
+                    "C1": 2,
+                },
+                c2_data={
+                    "df_path": i,
+                    "c_label": "TZ",
+                    "C2": 3,
+                },
+                df_out=df_path_out,
+            )
+    print("Creating: aTZ + aQZ -> aTQZ")
+    for i in fs_atz:
+        for j in fs_qz:
+            print("Extrapolated results:", df_path_out, end="\n\n")
+            df_path_out = i.replace("atz", "atqz")
+            dir_path = "/".join(df_path_out.split("/")[:-1])
+            if not os.path.exists(dir_path):
+                os.mkdir(dir_path)
+            extrapolate_energies_df(
+                c1_data={
+                    "df_path": i,
+                    "c_label": "TZ",
+                    "C1": 3,
+                },
+                c2_data={
+                    "df_path": j,
+                    "c_label": "QZ",
+                    "C2": 4,
+                },
+                df_out=df_path_out,
+            )
+    return
+
 
 def main():
-    generate_output_pkls()
+    base_path = "../sapt-components-2022/si/sapt_ref_data/"
+    fs_adz = glob(f"{base_path}/adz/*.pkl")
+    fs_atz = glob(f"{base_path}/atz/*.pkl")
+    fs_qz = glob(f"{base_path}/aqz/*.pkl")
+    generate_output_pkls(fs_adz, fs_atz, fs_qz)
     # df = pd.read_pickle("sapt_ref_data/adz/hbc6-plat-adz-all.pkl")
     # print(df.columns.values)
     # pd.set_option("display.max_columns", None)
