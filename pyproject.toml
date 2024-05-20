@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "extrapolator"
+version = "0.1.0"
+authors = [
+  { name="Austin M. Wallace", email="awallace43@gatech.edu" },
+  { name="C. David Sherrill", email="sherrill@gatech.edu" },
+]
+description = "Micro project to do CBS extrapolation on Pandas dataframes"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy>=1.20.0",
+    "pandas>=1.4.3"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/SherrillGroup/pandas-extrapolator"
+"Bug Tracker" = "https://github.com/SherrillGroup/pandas-extrapolator/issues"

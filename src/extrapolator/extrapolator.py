@@ -2,7 +2,7 @@ import pandas as pd
 from glob import glob
 from pprint import pprint as pp
 import os
-import src
+from . import compute_sapt_terms
 
 # TODO: add path to psi4/db to PYTHONPATH to get access to database
 # ex. import BBI
@@ -188,8 +188,6 @@ def extrapolate_energies_df(
             v = r1[i]
             # print(f"{i} {v}")
 
-
-
     # extrapolate the electron-correlation dependent terms
     for i in extrap_columns:
         df[i] = df.apply(
@@ -205,7 +203,7 @@ def extrapolate_energies_df(
     ]
     df = df[subset].copy()
     # now compute SAPT terms from the extrapolated energies
-    df = src.compute_sapt_terms.compute_sapt_terms(df)
+    df = compute_sapt_terms.compute_sapt_terms(df)
     # print(df.columns.values)
     # now select the new data for export
     df.to_pickle(df_out)
