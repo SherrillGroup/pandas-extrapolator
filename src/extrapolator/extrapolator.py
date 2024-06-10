@@ -196,6 +196,10 @@ def extrapolate_energies_df(
             ),
             axis=1,
         )
+    if f"system_id ({c1_label})" in df.columns.values:
+        df["system_id"] = df["system_id" + f" ({c1_label})"]
+        df['DB'] = df['DB' + f" ({c1_label})"]
+        df['benchmark ref energy'] = df['benchmark ref energy' + f" ({c1_label})"]
     subset = [
         i
         for i in df.columns.values
@@ -210,7 +214,7 @@ def extrapolate_energies_df(
     return
 
 
-def generate_output_pkls(fs_adz, fs_atz, fs_qz):
+def generate_output_pkls(fs_adz, fs_atz, fs_qz, no_db_check=False):
     # Ok mess around for now and test
     print("Creating: aDZ + aTZ -> aDTZ")
     for i in fs_atz:
@@ -242,10 +246,10 @@ def generate_output_pkls(fs_adz, fs_atz, fs_qz):
         db_atz = i.split("/")[-1].split("-")[0]
         for j in fs_qz:
             db_aqz = j.split("/")[-1].split("-")[0]
-            if db_atz == db_aqz:
+            if db_atz == db_aqz or no_db_check:
                 print(db_atz, i, j)
-                print("Extrapolated results:", df_path_out, end="\n\n")
                 df_path_out = i.replace("atz", "atqz")
+                print("Extrapolated results:", df_path_out, end="\n\n")
                 dir_path = "/".join(df_path_out.split("/")[:-1])
                 if not os.path.exists(dir_path):
                     os.mkdir(dir_path)
